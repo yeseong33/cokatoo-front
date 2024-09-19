@@ -5,6 +5,8 @@ import signupForm from './modules/signupForm'
 import login from './modules/login'
 import soundRecord from './modules/soundRecord'
 import sound from './modules/sound'
+import header from './modules/header'
+import auth from './modules/auth'
 // 다른 모듈들도 임포트
 
 const store = createStore({
@@ -14,7 +16,9 @@ const store = createStore({
     signupForm,
     login,
     soundRecord,
-    sound
+    sound,
+    header,
+    auth
   }
 })
 

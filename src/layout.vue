@@ -9,39 +9,60 @@ import {
   MenuItems
 } from '@headlessui/vue'
 import { Bars3Icon, BellIcon, XMarkIcon } from '@heroicons/vue/24/outline'
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useStore } from 'vuex'
 
 const router = useRouter()
+const store = useStore()
+
+const isNotNav = ['회원가입', '로그인']
+
+// Vuex의 navigation 데이터 가져오기
+const origin = computed(() => store.getters['header/navigation'])
+
+// 회원가입 항목을 제외한 navigation 데이터 필터링
+const navigation = computed(() => {
+  const navs = origin.value
+  const filteredNavs = navs.filter((nav) => !isNotNav.includes(nav.name))
+  return filteredNavs
+})
 
 const user = {
   name: 'Tom Cook',
   email: 'tom@example.com',
   imageUrl: './assets/coka.png'
 }
-const navigation = [
-  { name: '홈', href: '/', current: true },
-  { name: '비교하기', href: '/record', current: false },
-  { name: '기록', href: '/', current: false }
-]
+
 const userNavigation = [
   { name: 'Your Profile', href: '###' },
   { name: 'Settings', href: '##' },
   { name: 'Sign out', href: '#####' }
 ]
 
-// Function to handle click on navigation items
-const handleNavigationClick = (item) => {
-  // Set all navigation items' current property to false
-  navigation.forEach((navItem) => {
-    navItem.current = false
-  })
-
-  item.current = true
-  // router.push(item.href)
+const changeNavigation = (name) => {
+  store.dispatch('header/setNavigation', name)
 }
 
+const currentNavigationName = computed(() => {
+  const navs = origin.value
+  const currentNav = navs.find((nav) => nav.current)
+  return currentNav ? currentNav.name : ''
+})
+
+const auth = computed(() => store.getters['auth/isAuthenticated'])
+const token = computed(() => store.getters['auth/getToken'])
+
+console.log(auth.value)
+
 const handleSignupClick = () => {
+  changeNavigation('회원가입')
   router.push('/signup')
+}
+
+const handleLoginClick = () => {
+  changeNavigation('로그인')
+  router.push('/login')
 }
 </script>
 
@@ -62,20 +83,22 @@ const handleSignupClick = () => {
                   :to="item.href"
                   :class="[
                     item.current
-                      ? 'bg-gray-800 text-white'
+                      ? 'bg-gray-700 text-white'
                       : 'text-gray-300 hover:bg-gray-700 hover:text-white',
                     'rounded-md px-3 py-2 text-sm font-medium'
                   ]"
                   :aria-current="item.current ? 'page' : undefined"
-                  @click="handleNavigationClick(item)"
-                  >{{ item.name }}</router-link
+                  @click="changeNavigation(item.name)"
                 >
+                  {{ item.name }}
+                </router-link>
               </div>
             </div>
           </div>
           <div class="hidden md:block">
             <div class="ml-4 flex items-center md:ml-6">
               <button
+                v-if="auth"
                 type="button"
                 class="relative rounded-full bg-gray-800 p-1 text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800"
               >
@@ -86,7 +109,7 @@ const handleSignupClick = () => {
 
               <!-- Profile dropdown -->
               <Menu as="div" class="relative ml-3">
-                <div>
+                <div v-if="auth">
                   <MenuButton
                     class="relative flex max-w-xs items-center rounded-full bg-gray-800 text-sm text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800"
                     @click="handleSignupClick()"
@@ -95,6 +118,20 @@ const handleSignupClick = () => {
                     <span class="sr-only">Open user menu</span>
                     <img class="h-8 w-8 rounded-full" :src="user.imageUrl" alt="" />
                   </MenuButton>
+                </div>
+                <div v-if="!auth" className="flex py-6 gap-4">
+                  <a
+                    @click="handleSignupClick()"
+                    className="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-white hover:cursor-pointer"
+                  >
+                    Sign up
+                  </a>
+                  <a
+                    @click="handleLoginClick()"
+                    className="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-white hover:cursor-pointer"
+                  >
+                    Log in
+                  </a>
                 </div>
                 <transition
                   enter-active-class="transition ease-out duration-100"
@@ -164,11 +201,13 @@ const handleSignupClick = () => {
               <div class="text-sm font-medium text-gray-400">{{ user.email }}</div>
             </div>
             <button
+              v-if="auth"
               type="button"
               class="relative ml-auto flex-shrink-0 rounded-full bg-gray-800 p-1 text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800"
             >
               <span class="absolute -inset-1.5"></span>
               <span class="sr-only">View notifications</span>
+
               <BellIcon class="h-6 w-6" aria-hidden="true" />
             </button>
           </div>
@@ -187,7 +226,7 @@ const handleSignupClick = () => {
 
     <header class="bg-[#171717] shadow-sm border-b border-[#444444]">
       <div class="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-        <h1 class="text-lg font-semibold leading-6 text-white">{{ navigation.name }}</h1>
+        <h1 class="text-lg font-semibold leading-6 text-white">{{ currentNavigationName }}</h1>
       </div>
     </header>
     <main class="bg-[#171717] border-b border-[#444444]">
@@ -204,7 +243,7 @@ const handleSignupClick = () => {
             src="./assets/coka.png"
             alt="Company name"
           />
-          <div class="mt-16 grid grid-cols-2 gap-8 xl:col-span-2 xl:mt-0">
+          <!-- <div class="mt-16 grid grid-cols-2 gap-8 xl:col-span-2 xl:mt-0">
             <div class="md:grid md:grid-cols-2 md:gap-8">
               <div>
                 <h3 class="text-sm font-semibold leading-6 text-white">Solutions</h3>
@@ -249,7 +288,7 @@ const handleSignupClick = () => {
                 </ul>
               </div>
             </div>
-          </div>
+          </div> -->
         </div>
       </div>
     </footer>
