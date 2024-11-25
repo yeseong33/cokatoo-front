@@ -28,6 +28,8 @@ const navigation = computed(() => {
   return filteredNavs
 })
 
+const userInfo = computed(() => store.getters['user/userInfo']) // userInfo 가져오기
+
 const user = {
   name: 'Tom Cook',
   email: 'tom@example.com',
@@ -53,7 +55,7 @@ const currentNavigationName = computed(() => {
 const auth = computed(() => store.getters['auth/isAuthenticated'])
 const token = computed(() => store.getters['auth/getToken'])
 
-console.log(auth.value)
+console.log("유저 정보 " , auth.value)
 
 const handleSignupClick = () => {
   changeNavigation('회원가입')
@@ -126,6 +128,7 @@ const handleLoginClick = () => {
                   >
                     Sign up
                   </a>
+                  
                   <a
                     @click="handleLoginClick()"
                     className="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-white hover:cursor-pointer"

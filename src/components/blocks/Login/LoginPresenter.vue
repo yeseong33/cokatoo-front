@@ -19,7 +19,8 @@ const password = computed({
 const handleAuthClick = async () => {
   try {
     const res = await store.dispatch('login/handleAuthClick')
-    console.log(res)
+    store.dispatch('auth/login', res.data.access_token)
+    store.dispatch('header/addRecord') 
     if (res.status == 200) {
       alert('로그인 성공!')
       router.push('/')
