@@ -15,36 +15,13 @@ onMounted(async () => {
   }
 })
 
-const handleAuthClick = async () => {
-  try {
-    const res = await store.dispatch('login/handleAuthClick')
-    if (res.status == 200) {
-      alert('로그인 성공!')
-      router.push('/')
-    }
-  } catch (error) {
-    console.error('로그인 실패:', error)
-    alert(error.response.data.message)
-  }
-}
-
-const setSoundData = async () => {
-  try {
-    const soundId = store.state.sound.id
-    if (soundId !== -1) {
-      await store.dispatch('sound/getSound', soundId)
-    }
-  } catch (error) {
-    console.error('Error setting sound data:', error)
-  }
-}
-
 const handleNext = (e, id) => {
   e.preventDefault()
   store.dispatch('sound/setSoundId', id)
   // setSoundData()
   router.push(`/record/${id}`)
 }
+
 // Vuex state에서 sounds를 가져와 computed로 사용
 const sounds = computed(() => store.state.sound.sounds)
 </script>

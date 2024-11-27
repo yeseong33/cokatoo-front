@@ -7,6 +7,7 @@ import soundRecord from './modules/soundRecord'
 import sound from './modules/sound'
 import header from './modules/header'
 import auth from './modules/auth'
+import result from './modules/result'
 // 다른 모듈들도 임포트
 
 const store = createStore({
@@ -18,7 +19,8 @@ const store = createStore({
     soundRecord,
     sound,
     header,
-    auth
+    auth,
+    result
   }
 })
 

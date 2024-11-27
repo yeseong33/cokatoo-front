@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, onBeforeUnmount } from 'vue'
+import { ref, onMounted, computed, onBeforeUnmount, watch } from 'vue'
 import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 
@@ -14,39 +14,66 @@ const isLoading = ref(false)
 // Progress state
 const recordingProgress = ref(0)
 
-// Function to get audio duration
-const getAudioDuration = () => {
-  if (audioRef.value) {
-    audioRef.value.addEventListener('loadedmetadata', () => {
-      audioDuration.value = audioRef.value.duration
-      console.log('Audio duration:', audioDuration.value)
-    })
-  }
+const loadAudioMetadata = () => {
+  return new Promise((resolve) => {
+    if (audioRef.value) {
+      // audio 요소가 있으면 다시 로드하여 메타데이터를 불러옴
+      audioRef.value.load()
+
+      // 'loadedmetadata' 이벤트가 발생하면 duration 값을 가져옴
+      audioRef.value.addEventListener('loadedmetadata', () => {
+        console.log('Audio duration (로드 완료 후):', audioRef.value.duration)
+        audioDuration.value = audioRef.value.duration
+        resolve()
+      })
+    } else {
+      console.error('audioRef.value가 존재하지 않습니다.')
+      resolve() // 비동기 호출을 정상적으로 종료
+    }
+  })
 }
 
-const setSoundData = async () => {
+const setSoundData = async (soundId) => {
   try {
-    const soundId = store.state.sound.id
+    console.log('soundId : ', soundId)
+
     if (soundId !== -1) {
-      getAudioDuration()
+      // 오디오 파일 로드 후 메타데이터 가져오기
       await store.dispatch('sound/getSound', soundId)
+      const sound = store.state.sound.sound
+
+      // sound에서 path를 가져와서 soundRecord에 설정
+      if (sound && sound.path) {
+        store.dispatch('soundRecord/setPath', sound.path)
+      }
+
+      await loadAudioMetadata() // 메타데이터가 로드될 때까지 기다림
     }
   } catch (error) {
     console.error('Error setting sound data:', error)
   }
 }
+
+// 경로 변경을 감지하여 데이터 다시 불러오기
+watch(
+  () => router.currentRoute.value.params.id,
+  async (newId) => {
+    if (newId) {
+      await setSoundData(newId)
+    }
+  }
+)
+
 onMounted(async () => {
-  await setSoundData()
+  const soundId = router.currentRoute.value.params.id || store.state.sound.id
+  if (soundId) {
+    await setSoundData(soundId)
+  }
 })
-
-// watch(getAudioDuration())
-
-// watch(() => store.state.sound.id, await setSoundData())
 
 const toggleRecording = async () => {
   // Progress를 0으로 리셋할 때 transition을 잠시 비활성화
   recordingProgress.value = 0
-
   // 녹음 시작
   await store.dispatch('soundRecord/toggleRecording')
 
@@ -57,10 +84,9 @@ const toggleRecording = async () => {
       recordingProgress.value = 100
     }, 10) // 10ms 지연 후에 transition과 progress 업데이트 시작
 
-    // 음원 길이만큼 녹음한 후 자동 중지
     recordingTimeout = setTimeout(async () => {
       await store.dispatch('soundRecord/toggleRecording')
-      console.log('녹음 자동 종료')
+      console.log('음원길이 : ', audioDuration.value)
       recordingProgress.value = 100 // 녹음이 끝나면 progress를 100으로
     }, audioDuration.value * 1000) // 음원의 길이(ms)만큼 대기
   } else {
@@ -70,8 +96,8 @@ const toggleRecording = async () => {
 }
 
 const playRecording = () => {
+  console.log('녹음 재생')
   store.dispatch('soundRecord/playRecording')
-  store.dispatch('soundRecord/downloadRecording')
 }
 
 const handlePlayAudio = () => {
@@ -88,6 +114,7 @@ const stopAudio = () => {
     audioRef.value.currentTime = 0
   }
 }
+
 onBeforeUnmount(() => {
   stopAudio()
 })
@@ -97,15 +124,19 @@ onBeforeRouteLeave((to, from, next) => {
   next()
 })
 
-const handleNext = () => {
+const handleNext = async () => {
   // 로딩 상태를 활성화
   isLoading.value = true
-
+  const result = await store.dispatch('soundRecord/compareSound')
+  const similarityScore = result.data.similarity_score
+  await store.dispatch('result/setSimilarityScore', similarityScore)
+  store.dispatch('header/setNavigation', '결과')
   // 3초 후에 결과 창으로 이동
   setTimeout(() => {
-    router.push(`/result`)
+    router.push('/result')
   }, 2000) // 3초 대기
 }
+
 // Vuex state에서 sounds를 가져와 computed로 사용
 const sound = computed(() => store.state.sound.sound)
 </script>

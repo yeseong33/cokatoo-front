@@ -4,14 +4,16 @@ const state = {
   name: '',
   email: '',
   password: '',
-  passwordConfirm: ''
+  passwordConfirm: '',
+  error: null
 }
 
 const getters = {
   name: (state) => state.name,
   email: (state) => state.email,
   password: (state) => state.password,
-  passwordConfirm: (state) => state.passwordConfirm
+  passwordConfirm: (state) => state.passwordConfirm,
+  error: (state) => state.error
 }
 
 const actions = {
@@ -27,22 +29,35 @@ const actions = {
   updatePasswordConfirm({ commit }, newPasswordConfirm) {
     commit('SET_PASSWORD_CONFIRM', newPasswordConfirm)
   },
-  async handleJoinClick({ state }) {
+  resetState({ commit }) {
+    commit('RESET_STATE')
+  },
+  joinCondition({ state }) {
     if (state.password !== state.passwordConfirm) {
       alert('비밀번호를 확인해주세요.')
-      return
+      return true
     }
-
-    const request = {
+    return false
+  },
+  makeRequest({ state }) {
+    return {
       name: state.name,
       email: state.email,
       password: state.password
     }
-
+  },
+  async handleJoinClick({ commit, state }) {
+    if (actions.joinCondition({ state })) return
+    const request = actions.makeRequest({ state })
     try {
       const res = await SignupAPI.sign(request)
+      commit('RESET_STATE')
       return res
     } catch (error) {
+      commit('SET_ERROR', error.response?.data?.message || 'Signup failed')
+      alert(error.response?.data?.message)
+      console.error('회원가입 실패:', error)
+
       throw error
     }
   }
@@ -60,6 +75,15 @@ const mutations = {
   },
   SET_PASSWORD_CONFIRM(state, newPasswordConfirm) {
     state.passwordConfirm = newPasswordConfirm
+  },
+  RESET_STATE(state) {
+    state.name = ''
+    state.email = ''
+    state.password = ''
+    state.passwordConfirm = ''
+  },
+  SET_ERROR(state, error) {
+    state.error = error
   }
 }
 

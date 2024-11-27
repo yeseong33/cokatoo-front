@@ -55,6 +55,11 @@ const token = computed(() => store.getters['auth/getToken'])
 
 console.log(auth.value)
 
+const handleCokaClick = () => {
+  changeNavigation('홈')
+  router.push('/')
+}
+
 const handleSignupClick = () => {
   changeNavigation('회원가입')
   router.push('/signup')
@@ -64,6 +69,11 @@ const handleLoginClick = () => {
   changeNavigation('로그인')
   router.push('/login')
 }
+
+const handleMyinfoClick = () => {
+  changeNavigation('내정보')
+  router.push('/info')
+}
 </script>
 
 <template>
@@ -72,7 +82,10 @@ const handleLoginClick = () => {
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex h-16 items-center justify-between">
           <div class="flex items-center">
-            <div class="flex-shrink-0 bg-[#444444] rounded-full">
+            <div
+              class="flex-shrink-0 bg-[#444444] rounded-full hover:cursor-pointer"
+              @click="handleCokaClick()"
+            >
               <img class="h-12 w-12" src="./assets/coka.png" alt="Your Company" />
             </div>
             <div class="hidden md:block">
@@ -112,7 +125,7 @@ const handleLoginClick = () => {
                 <div v-if="auth">
                   <MenuButton
                     class="relative flex max-w-xs items-center rounded-full bg-gray-800 text-sm text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800"
-                    @click="handleSignupClick()"
+                    @click="handleMyinfoClick()"
                   >
                     <span class="absolute -inset-1.5"></span>
                     <span class="sr-only">Open user menu</span>

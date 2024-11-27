@@ -18,16 +18,16 @@ const actions = {
     commit('SET_PASSWORD', newPassword)
   },
 
-  async handleAuthClick({ state }) {
+  async handleAuthClick({ commit, state }) {
     const request = {
       email: state.email,
       password: state.password
     }
     try {
       const res = await AuthAPI.login(request)
-      if (res.status == 201) {
+      if (res.status == 200) {
+        commit('RESET_STATE')
         alert('로그인 성공!')
-        router.push('/')
       }
       return res
     } catch (error) {
@@ -42,6 +42,10 @@ const mutations = {
   },
   SET_PASSWORD(state, newPassword) {
     state.password = newPassword
+  },
+  RESET_STATE(state) {
+    state.email = ''
+    state.password = ''
   }
 }
 

@@ -24,6 +24,10 @@ const passwordConfirm = computed({
   set: (value) => store.dispatch('signupForm/updatePasswordConfirm', value)
 })
 
+const error = computed({
+  get: () => store.getters['signupForm/error']
+})
+
 const isPasswordConfirm = () => {
   if (password.value !== passwordConfirm.value) {
     alert('비밀번호를 확인해주세요.')
@@ -43,7 +47,7 @@ const handleJoinClick = async () => {
     }
   } catch (error) {
     console.error('회원가입 실패:', error)
-    alert(error.response.data.message)
+    alert(error)
   }
 }
 
