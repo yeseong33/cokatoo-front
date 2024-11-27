@@ -19,8 +19,8 @@ const password = computed({
 const handleAuthClick = async () => {
   try {
     const res = await store.dispatch('login/handleAuthClick')
-    console.log(res.data.access_token)
-
+    store.dispatch('auth/login', res.data.access_token)
+    store.dispatch('header/addRecord')
     if (res.status == 200) {
       const token = res.data.access_token
       store.dispatch('auth/login', token)
