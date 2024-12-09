@@ -127,14 +127,24 @@ onBeforeRouteLeave((to, from, next) => {
 const handleNext = async () => {
   // 로딩 상태를 활성화
   isLoading.value = true
-  const result = await store.dispatch('soundRecord/compareSound')
+  const soundId = store.state.sound.id
+  const userId = store.state.user
+
+  const result = await store.dispatch('soundRecord/compareSound', { soundId, userId: 1 })
+
+  // API 실패 처리
+  if (!result || !result.data) {
+    console.error('음원 비교 실패로 결과를 가져올 수 없습니다.')
+    isLoading.value = false
+    return
+  }
+
+  await store.dispatch('soundRecord/recordResult')
+
   const similarityScore = result.data.similarity_score
   await store.dispatch('result/setSimilarityScore', similarityScore)
   store.dispatch('header/setNavigation', '결과')
-  // 3초 후에 결과 창으로 이동
-  setTimeout(() => {
-    router.push('/result')
-  }, 2000) // 3초 대기
+  router.push('/result')
 }
 
 // Vuex state에서 sounds를 가져와 computed로 사용

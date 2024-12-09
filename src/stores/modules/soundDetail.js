@@ -6,6 +6,7 @@ const getters = {
   email: (state) => state.email,
   password: (state) => state.password
 }
+
 const actions = {
   async fetchSounds({ commit }) {
     try {
@@ -15,8 +16,10 @@ const actions = {
     } catch (error) {
       console.error('Error fetching products:', error)
     }
+  },
+  getSounds({ commit }) {
+    return commit.sounds
   }
-  // 다른 액션들
 }
 
 const mutations = {

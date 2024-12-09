@@ -1,4 +1,5 @@
 import { CompareSoundAPI } from '@/api'
+import user from './user'
 
 const state = {
   isRecording: false,
@@ -99,31 +100,46 @@ const actions = {
   setPath({ commit }, path) {
     commit('SET_PATH', path)
   },
-  async compareSound({ state }) {
+  async compareSound({ state }, { soundId, userId }) {
     try {
       if (!state.path) {
         console.warn('파일 경로가 설정되지 않았습니다.')
         return
       }
 
+      console.log('파일 : ', state)
       console.log('파일 경로 이름 : ', state.path)
+
       const formData = new FormData()
       const file1Path = '/assets/sound/' + state.path
       const file1 = await fetch(file1Path)
       const file1Blob = await file1.blob()
+
       console.log('파일1 : ', file1Blob)
       console.log('파일2 : ', state.audioFile)
 
       formData.append('file1', file1Blob, state.path)
-      formData.append('file2', state.audioFile, 'recording.webm') // 명확한 파일 이름과 확장자 추가
+      formData.append('file2', state.audioFile, 'recording.webm')
+      formData.append('sound_id', soundId)
+      console.log('user_id: 넣고 있다 ', userId)
+      formData.append('user_id', userId)
 
       const response = await CompareSoundAPI.compare(formData)
 
-      console.log(response)
       console.log('음원 비교 완료:', response)
       return response
     } catch (error) {
       console.log('음원 비교 실패:', error)
+    }
+  },
+  async recordResult({ state }) {
+    try {
+      const response = await CompareSoundAPI.compare(formData)
+      console.log(response)
+      console.log('결과 저장 성공:', response)
+      return response
+    } catch (error) {
+      console.log('결과 저장 실패:', error)
     }
   }
 }
