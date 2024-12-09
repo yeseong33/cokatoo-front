@@ -1,4 +1,5 @@
 <script setup>
+import { LogAPI } from '@/api'
 import { ref, onMounted, computed, onBeforeUnmount, watch } from 'vue'
 import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
@@ -124,13 +125,34 @@ onBeforeRouteLeave((to, from, next) => {
   next()
 })
 
+const createLog = async (similarityScore, recordSoundPath, userId, soundId, gradeId) => {
+  const log = {
+    score: similarityScore,
+    recordSound: recordSoundPath,
+    link: 'link',
+    userId: userId,
+    soundId: soundId,
+    gradeId: gradeId
+  }
+  try {
+    const response = await LogAPI.create(log)
+    return response
+  } catch (error) {
+    console.log(error)
+  }
+}
+
 const handleNext = async () => {
   // 로딩 상태를 활성화
   isLoading.value = true
   const soundId = store.state.sound.id
   const userId = store.state.user.userInfo.data.userId
+  const recordSound = store.state.soundRecord.path
+
+  console.log('pass1')
 
   const result = await store.dispatch('soundRecord/compareSound', { soundId, userId: userId })
+  console.log('pass1')
 
   // API 실패 처리
   if (!result || !result.data) {
@@ -138,12 +160,20 @@ const handleNext = async () => {
     isLoading.value = false
     return
   }
+  console.log('pass1')
+
+  console.log(' 녹음된 음원', recordSound)
+  console.log('pass1')
 
   await store.dispatch('soundRecord/recordResult')
-
   const similarityScore = result.data.similarity_score
   await store.dispatch('result/setSimilarityScore', similarityScore)
   const gradeId = await store.dispatch('result/getGrade', similarityScore)
+  console.log('pass1')
+
+  const log = createLog(similarityScore, recordSound, userId, soundId, gradeId)
+
+  console.log('로그 저장 완료', log)
 
   store.dispatch('header/setNavigation', '결과')
   router.push('/result')
