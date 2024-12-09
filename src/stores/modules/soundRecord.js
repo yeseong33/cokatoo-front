@@ -121,7 +121,6 @@ const actions = {
       formData.append('file1', file1Blob, state.path)
       formData.append('file2', state.audioFile, 'recording.webm')
       formData.append('sound_id', soundId)
-      console.log('user_id: 넣고 있다 ', userId)
       formData.append('user_id', userId)
 
       const response = await CompareSoundAPI.compare(formData)

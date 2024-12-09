@@ -1,3 +1,5 @@
+import { UserAPI } from '@/api'
+
 const state = {
   userInfo: null
   // 다른 상태들
@@ -12,9 +14,9 @@ const getters = {
 const actions = {
   async fetchUserInfo({ commit }) {
     try {
-      const response = await fetch('/api/user')
-      const data = await response.json()
+      const data = await UserAPI.getUserByJwt()
       commit('SET_USER_INFO', data)
+      console.log('조회 결과', data)
     } catch (error) {
       console.error('Error fetching user info:', error)
     }

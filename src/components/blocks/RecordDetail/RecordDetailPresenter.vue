@@ -128,7 +128,7 @@ const handleNext = async () => {
   // 로딩 상태를 활성화
   isLoading.value = true
   const soundId = store.state.sound.id
-  const userId = store.state.user
+  const userId = store.state.user.userInfo.data.userId
 
   const result = await store.dispatch('soundRecord/compareSound', { soundId, userId: userId })
 

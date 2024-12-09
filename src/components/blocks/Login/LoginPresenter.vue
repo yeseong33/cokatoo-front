@@ -22,8 +22,9 @@ const handleAuthClick = async () => {
     store.dispatch('auth/login', res.data.access_token)
     store.dispatch('header/addRecord')
     if (res.status == 200) {
-      const token = res.data.access_token
-      store.dispatch('auth/login', token)
+      const token = res.data.access_token.trim()
+      await store.dispatch('auth/login', token)
+      await store.dispatch('user/fetchUserInfo')
       router.push('/')
     }
     console.log(res)

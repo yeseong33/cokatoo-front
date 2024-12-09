@@ -5,6 +5,7 @@ import soundAPI from './soundAPI.js'
 import store from '@/stores/index.js'
 import compareSoundAPI from './compareSoundAPI.js'
 import gradeAPI from './gradeAPI.js'
+import userAPI from './userAPI.js'
 
 // Axios 인스턴스 생성
 export const Axios = axios.create({
@@ -20,7 +21,7 @@ Axios.interceptors.request.use(
   (config) => {
     const token = store.getters['auth/getToken']
     if (token) {
-      config.headers.Authorization = `Bearer ${token}` // JWT가 있을 경우 추가
+      config.headers.Authorization = `${token}` // JWT가 있을 경우 추가
     } else {
       // JWT가 없으므로 아무것도 하지 않음
       // config.headers.Authorization은 undefined로 남음
@@ -38,3 +39,4 @@ export const SignupAPI = signupAPI(Axios)
 export const SoundAPI = soundAPI(Axios)
 export const CompareSoundAPI = compareSoundAPI(Axios)
 export const GradeAPI = gradeAPI(Axios)
+export const UserAPI = userAPI(Axios)
