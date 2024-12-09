@@ -4,6 +4,7 @@ import signupAPI from './signupAPI.js'
 import soundAPI from './soundAPI.js'
 import store from '@/stores/index.js'
 import compareSoundAPI from './compareSoundAPI.js'
+import gradeAPI from './gradeAPI.js'
 
 // Axios 인스턴스 생성
 export const Axios = axios.create({
@@ -36,3 +37,4 @@ export const AuthAPI = authAPI(Axios)
 export const SignupAPI = signupAPI(Axios)
 export const SoundAPI = soundAPI(Axios)
 export const CompareSoundAPI = compareSoundAPI(Axios)
+export const GradeAPI = gradeAPI(Axios)

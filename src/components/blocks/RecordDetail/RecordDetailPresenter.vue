@@ -130,7 +130,7 @@ const handleNext = async () => {
   const soundId = store.state.sound.id
   const userId = store.state.user
 
-  const result = await store.dispatch('soundRecord/compareSound', { soundId, userId: 1 })
+  const result = await store.dispatch('soundRecord/compareSound', { soundId, userId: userId })
 
   // API 실패 처리
   if (!result || !result.data) {
@@ -143,6 +143,8 @@ const handleNext = async () => {
 
   const similarityScore = result.data.similarity_score
   await store.dispatch('result/setSimilarityScore', similarityScore)
+  const gradeId = await store.dispatch('result/getGrade', similarityScore)
+
   store.dispatch('header/setNavigation', '결과')
   router.push('/result')
 }
