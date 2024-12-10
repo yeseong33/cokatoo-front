@@ -131,16 +131,6 @@ const actions = {
       console.log('음원 비교 실패:', error)
     }
   },
-  async recordResult({ state }) {
-    try {
-      const response = await CompareSoundAPI.compare(formData)
-      console.log(response)
-      console.log('결과 저장 성공:', response)
-      return response
-    } catch (error) {
-      console.log('결과 저장 실패:', error)
-    }
-  }
 }
 
 export default {

@@ -3,18 +3,36 @@ import { initChart } from '@/api/chart'
 import { initTable } from '@/api/rankTable'
 import { ref, onMounted } from 'vue'
 import blackCockatoo from '@/assets/grade/블랙코카투.png'
+import brid from '@/assets/grade/금조류.png'
+import columbidae from '@/assets/grade/비둘기.png'
 import { useStore } from 'vuex'
 
 const store = useStore()
 
-const product = {
+const gradeDetails = {
+  1: {
+    description: `코카투는 사람의 말을 흉내내는 능력이 매우 뛰어납니다. 특히 인간과의 상호작용에서 말을 배워서 흉내내는 습성을 보여줍니다.\n코카투만큼 소리를 잘 따라하시네요!\n코카투는 저희 서비스의 상징이기도 합니다!`,
+    imageSrc: blackCockatoo,
+    videoCode: "yOAHCn3VDvI"
+  },
+  2: {
+    description: `금조류는 사물, 사람의 소리를 잘 흉내내는 습성이 있습니다.\n금조류만큼 소리를 잘 흉내 내시네요!`,
+    imageSrc: brid,
+    videoCode: "RqgKVGDz0YA"
+  },
+  3: {
+    description: `비둘기는 소리를 잘 흉내내진 않습니다. 구구거릴 뿐이죠 하지만 귀여우니 너무 낙심하지 마세요!`,
+    imageSrc: columbidae,
+    videoCode: "ROQuQYljHGI"
+  }
+}
+const product = ref({
   name: '나의 유사도 결과는:',
   value: ref(null),
-  description:
-    '코카투는 사람의 말을 흉내내는 능력이 매우 뛰어납니다. 특히 인간과의 상호작용에서 말을 배워서 흉내내는 습성을 보여줍니다. 코카투만큼 소리를 잘 따라하시네요! 코카투는 저희 서비스의 상징이기도 합니다!',
-  imageSrc: blackCockatoo,
-  videoCode: 'yOAHCn3VDvI'
-}
+  description: '',
+  imageSrc: '',
+  videoCode: ''
+})
 
 // const product = {
 //   name: '나의 유사도 결과는:',
@@ -36,11 +54,21 @@ const product = {
 const chartDom = ref(null)
 const tableRef = ref(null)
 
-// 유사도 점수를 가져오는 함수
-const getResult = () => {
+const getResult = async () => {
   const similarityScore = store.state.result.similarityScore * 100
   product.value.value = similarityScore.toFixed(1) // ref로 감싼 value에 접근
+
+  const grade = store.state.result.grade
+  console.log("grade : ", grade)
+
+  // grade에 맞는 값으로 동적으로 설정
+  const gradeInfo = gradeDetails[grade] || gradeDetails.A // 기본값은 'A'로 설정
+  product.value.description = gradeInfo.description
+  product.value.imageSrc = gradeInfo.imageSrc
+  product.value.videoCode = gradeInfo.videoCode
 }
+
+
 
 // onMounted 훅에서 초기화
 onMounted(() => {

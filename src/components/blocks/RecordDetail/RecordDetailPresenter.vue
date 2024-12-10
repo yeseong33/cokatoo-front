@@ -15,6 +15,9 @@ const isLoading = ref(false)
 // Progress state
 const recordingProgress = ref(0)
 
+const userInfo = computed(() => store.getters["user/userInfo"])
+console.log("유저 정보 : ", userInfo)
+
 const loadAudioMetadata = () => {
   return new Promise((resolve) => {
     if (audioRef.value) {
@@ -146,13 +149,10 @@ const handleNext = async () => {
   // 로딩 상태를 활성화
   isLoading.value = true
   const soundId = store.state.sound.id
-  const userId = store.state.user.userInfo.data.userId
+  const userId = userInfo.value.data.userId
   const recordSound = store.state.soundRecord.path
 
-  console.log('pass1')
-
   const result = await store.dispatch('soundRecord/compareSound', { soundId, userId: userId })
-  console.log('pass1')
 
   // API 실패 처리
   if (!result || !result.data) {
@@ -160,16 +160,10 @@ const handleNext = async () => {
     isLoading.value = false
     return
   }
-  console.log('pass1')
 
-  console.log(' 녹음된 음원', recordSound)
-  console.log('pass1')
-
-  await store.dispatch('soundRecord/recordResult')
   const similarityScore = result.data.similarity_score
   await store.dispatch('result/setSimilarityScore', similarityScore)
   const gradeId = await store.dispatch('result/getGrade', similarityScore)
-  console.log('pass1')
 
   const log = createLog(similarityScore, recordSound, userId, soundId, gradeId)
 
