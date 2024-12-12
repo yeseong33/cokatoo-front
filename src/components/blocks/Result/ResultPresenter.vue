@@ -13,28 +13,32 @@ const gradeDetails = {
   1: {
     description: `코카투는 사람의 말을 흉내내는 능력이 매우 뛰어납니다. 특히 인간과의 상호작용에서 말을 배워서 흉내내는 습성을 보여줍니다.\n코카투만큼 소리를 잘 따라하시네요!\n코카투는 저희 서비스의 상징이기도 합니다!`,
     imageSrc: blackCockatoo,
+    videoTilte: "세상에서 가장 똑똑한 앵무새", 
     videoCode: "yOAHCn3VDvI"
   },
   2: {
     description: `금조류는 사물, 사람의 소리를 잘 흉내내는 습성이 있습니다.\n금조류만큼 소리를 잘 흉내 내시네요!`,
     imageSrc: brid,
+    videoTilte: "금조류 킬링벌스", 
     videoCode: "RqgKVGDz0YA"
   },
   3: {
     description: `비둘기는 소리를 잘 흉내내진 않습니다. 구구거릴 뿐이죠 하지만 귀여우니 너무 낙심하지 마세요!`,
     imageSrc: columbidae,
+    videoTilte: "구구구구구", 
     videoCode: "ROQuQYljHGI"
   }
 }
-const product = ref({
+const result = ref({
   name: '나의 유사도 결과는:',
   value: ref(null),
   description: '',
   imageSrc: '',
-  videoCode: ''
+  videoCode: '',
+  videoTilte: ''
 })
 
-// const product = {
+// const result = {
 //   name: '나의 유사도 결과는:',
 //   value: '76.6',
 //   description: 금조류는 사물, 사람의 소리를 잘 흉내내는 습성이 있습니다. 금조류만큼 소리를 잘 흉내 내시네요!,
@@ -42,7 +46,7 @@ const product = ref({
 //   videoCode: 'RqgKVGDz0YA'
 // }
 
-// const product = {
+// const result = {
 //   name: '나의 유사도 결과는:',
 //   value: '24.5',
 //   description: 비둘기는 소리를 잘 흉내내진 않습니다. 구구거릴 뿐이죠 하지만 귀여우니 너무 낙심하지 마세요!,
@@ -56,23 +60,71 @@ const tableRef = ref(null)
 
 const getResult = async () => {
   const similarityScore = store.state.result.similarityScore * 100
-  product.value.value = similarityScore.toFixed(1) // ref로 감싼 value에 접근
+  result.value.value = similarityScore.toFixed(1) // ref로 감싼 value에 접근
 
   const grade = store.state.result.grade
   console.log("grade : ", grade)
 
   // grade에 맞는 값으로 동적으로 설정
   const gradeInfo = gradeDetails[grade] || gradeDetails.A // 기본값은 'A'로 설정
-  product.value.description = gradeInfo.description
-  product.value.imageSrc = gradeInfo.imageSrc
-  product.value.videoCode = gradeInfo.videoCode
+  result.value.description = gradeInfo.description
+  result.value.imageSrc = gradeInfo.imageSrc
+  result.value.videoCode = gradeInfo.videoCode
+  result.value.videoTilte = gradeInfo.videoTilte
+}
+
+
+// 점수 데이터를 기반으로 분포 계산
+
+
+function calculateFineDistribution(scores, binSize) {
+  const maxScore = Math.max(...scores)
+  const bins = Array(Math.ceil(maxScore / binSize)).fill(0) // 0~최대 점수 범위로 나눈 빈
+  scores.forEach(score => {
+    const binIndex = Math.min(Math.floor(score / binSize), bins.length - 1)
+    bins[binIndex]++
+  })
+  return bins.map((count, index) => [index * binSize, count]) // [구간 시작점, 빈도]
 }
 
 
 
+// 정규분포 데이터를 생성하는 함수
+function generateRandomScores(mean, stdDev, count, range = [0, 100]) {
+  const [min, max] = range
+  const scores = []
+
+  for (let i = 0; i < count; i++) {
+    // Box-Muller 변환을 이용해 정규분포 데이터 생성
+    let u1 = Math.random()
+    let u2 = Math.random()
+    let z = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2) // 표준 정규분포 값
+
+    // 생성된 값을 평균과 표준편차에 맞게 스케일링
+    let score = z * stdDev + mean
+
+    // 값이 범위를 벗어나지 않도록 조정
+    if (score < min) score = min
+    if (score > max) score = max
+
+    // 소수점 첫째 자리로 반올림
+    scores.push(Math.round(score * 10) / 10)
+  }
+
+  return scores
+}
+
+
 // onMounted 훅에서 초기화
 onMounted(() => {
-  if (chartDom.value) initChart(chartDom.value)
+
+  const mean = 50; // 평균
+  const stdDev = 15; // 표준편차
+  const count = 100000; // 생성할 데이터 개수
+
+  const scores = generateRandomScores(mean, stdDev, count)
+
+  if (chartDom.value) initChart(chartDom.value, scores)
   if (tableRef.value) initTable(tableRef.value)
   getResult()
 })
@@ -115,25 +167,25 @@ function copyToClipboard() {
 <template>
   <div class="bg-[#171717] border-2 border-[#444444] p-8 rounded-lg space-y-8 mb-20">
     <div class="flex flex-col lg:flex-row lg:gap-8 items-center">
-      <!-- Product Details -->
+      <!-- result Details -->
       <div class="lg:w-1/2 lg:max-w-lg lg:self-end text-center lg:text-left">
         <h1 class="text-3xl font-bold tracking-tight text-gray-300 sm:text-4xl">
-          {{ product.name }}
+          {{ result.name }}
         </h1>
         <div class="mt-4">
           <span class="text-8xl font-semibold tracking-tight text-[#DA0037]">
-            {{ product.value }}
+            {{ result.value }}
           </span>
         </div>
         <section aria-labelledby="information-heading" class="mt-4">
-          <p class="text-base text-gray-500 mt-4">{{ product.description }}</p>
+          <p class="text-base text-gray-500 mt-4">{{ result.description }}</p>
         </section>
       </div>
 
-      <!-- Product Image -->
+      <!-- result Image -->
       <div class="mt-10 lg:mt-0 lg:self-center lg:w-1/2">
         <div class="aspect-w-1 aspect-h-1 overflow-hidden rounded-lg">
-          <img :src="product.imageSrc" class="h-full w-full object-cover object-center" />
+          <img :src="result.imageSrc" class="h-full w-full object-cover object-center" />
         </div>
       </div>
     </div>
@@ -143,11 +195,11 @@ function copyToClipboard() {
   <div class="mb-24 flex justify-center">
     <div class="grid grid-cols-1 gap-8 mt-10 lg:mt-0 w-full justify-center">
       <h3 class="text-xl font-bold tracking-tight text-gray-300 sm:text-4xl mb-4 text-center">
-        세상에서 가장 똑똑한 앵무새
+        {{ result.videoTilte }}
       </h3>
       <div class="w-[60%] h-0 pb-[30%] relative mx-auto">
         <iframe
-          :src="'https://www.youtube.com/embed/' + product.videoCode"
+          :src="'https://www.youtube.com/embed/' + result.videoCode"
           frameborder="0"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowfullscreen

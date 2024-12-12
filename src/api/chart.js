@@ -1,73 +1,146 @@
 import * as echarts from 'echarts'
-function generateNormalDistributionData(mean, stdDev, points) {
-  let data = []
-  for (let i = 0; i < points; i++) {
-    let x = (i / points) * 100 // x 값 (0~100 사이의 범위)
-    let y =
-      (1 / (stdDev * Math.sqrt(2 * Math.PI))) * Math.exp(-((x - mean) ** 2) / (2 * stdDev ** 2)) // 정규분포 계산
-    y = y * 100 // 스케일링 (y 값을 보기 좋게 확장)
-    data.push([x.toFixed(2), y.toFixed(2)])
+
+
+// 정규분포 데이터를 생성하는 함수
+function generateRandomScores(mean, stdDev, count, range = [0, 100]) {
+  const [min, max] = range
+  const scores = []
+
+  for (let i = 0; i < count; i++) {
+    // Box-Muller 변환을 이용해 정규분포 데이터 생성
+    let u1 = Math.random()
+    let u2 = Math.random()
+    let z = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2) // 표준 정규분포 값
+
+    // 생성된 값을 평균과 표준편차에 맞게 스케일링
+    let score = z * stdDev + mean
+
+    // 값이 범위를 벗어나지 않도록 조정
+    if (score < min) score = min
+    if (score > max) score = max
+
+    // 소수점 첫째 자리로 반올림
+    scores.push(Math.round(score * 10) / 10)
   }
-  return data
+
+  return scores
 }
 
-export function initChart(chartDom) {
-  var myChart = echarts.init(chartDom)
+// 점수 데이터를 기반으로 분포 계산
+function calculateFineDistribution(scores, binSize) {
+  const maxScore = Math.max(...scores)
+  const bins = Array(Math.ceil(maxScore / binSize)).fill(0) // 0~최대 점수 범위로 나눈 빈
+  scores.forEach(score => {
+    const binIndex = Math.min(Math.floor(score / binSize), bins.length - 1)
+    bins[binIndex]++
+  })
+  return bins.map((count, index) => [index * binSize, count]) // [구간 시작점, 빈도]
+}
 
-  // 정규분포 데이터 생성 (평균: 50, 표준편차: 15, 100 포인트)
-  const data = generateNormalDistributionData(50, 15, 100)
 
-  var option = {
+export function initChart(chartDom, scores) {
+  const binSize = 1; // 세밀한 구간 크기
+  const distribution = calculateFineDistribution(scores, binSize); // 분포 데이터 계산
+
+  const myChart = echarts.init(chartDom);
+
+  const targetScore = 70; // 강조하고 싶은 점수
+
+  // 목표 점수까지 색칠된 구간 생성
+  const shadedData = distribution.filter(([x]) => x >= targetScore); // targetScore 이하만 추출
+
+  // 상위 퍼센트 계산
+  const sortedScores = [...scores].sort((a, b) => a - b); // 정렬
+  const targetIndex = sortedScores.findIndex((score) => score > targetScore);
+  const percentile = Math.round(100 - ((targetIndex / sortedScores.length) * 100).toFixed(2), 10); // 상위 퍼센트 계산
+
+  const option = {
+    title: {
+      text: '정규분포 곡선 (점수 기반)',
+      left: 'center',
+    },
+    tooltip: {
+      trigger: 'item',
+      formatter: (params) => {
+        if (params.componentType === 'markPoint') {
+          const { coord, name } = params.data;
+          return `${name}<br>점수: ${coord[0]}<br>빈도: ${coord[1]}<br>상위: ${percentile}%`;
+        }
+        if (params.seriesName === '강조된 구간') {
+          return `점수: ${params.data[0]}<br>빈도: ${params.data[1]}`;
+        }
+        return '';
+      },
+    },
     xAxis: {
-      type: 'category',
-      boundaryGap: false
+      type: 'value',
+      name: '점수',
+      boundaryGap: false,
+      min: 0,
+      max: 100,
     },
     yAxis: {
       type: 'value',
-      boundaryGap: [0, '30%']
-    },
-    visualMap: {
-      type: 'piecewise',
-      show: false,
-      dimension: 0,
-      seriesIndex: 0,
-      pieces: [
-        {
-          gt: 70,
-          lt: 100,
-          color: 'rgba(0, 0, 180, 0.4)'
-        }
-        // {
-        //   gt: 50,
-        //   lt: 70,
-        //   color: 'rgba(0, 0, 180, 0.4)'
-        // }
-      ]
+      name: '빈도',
     },
     series: [
       {
+        name: '전체 분포',
         type: 'line',
-        smooth: 0.6,
-        symbol: 'none',
+        data: distribution,
+        smooth: true,
         lineStyle: {
           color: '#5470C6',
-          width: 5
+          width: 2,
         },
-        markLine: {
-          symbol: ['none', 'none'],
-          label: { show: false },
-          data: [{ xAxis: 70 }, { xAxis: 100 }]
+        areaStyle: {
+          color: 'rgba(84, 112, 198, 0.2)', // 전체 배경 영역 스타일
         },
-        areaStyle: {},
-        data: data // 정규분포 더미 데이터 사용
-      }
-    ]
-  }
+        symbol: 'none',
+      },
+      {
+        name: '강조된 구간',
+        type: 'line',
+        data: shadedData,
+        smooth: true,
+        lineStyle: {
+          color: '#DA0037',
+          width: 2,
+        },
+        areaStyle: {
+          color: 'rgba(218, 0, 55, 0.3)', // 강조 구간 배경 색
+        },
+        symbol: 'none',
+      },
+      {
+        type: 'line',
+        markPoint: {
+          data: [
+            {
+              coord: [targetScore, 1200], // x: 점수, y: 빈도
+              symbol: 'circle',
+              symbolSize: 10,
+              itemStyle: {
+                color: '#DA0037',
+              },
+              label: {
+                formatter: `내 점수: ${targetScore}`,
+                color: '#DA0037',
+                fontWeight: 'bold',
+                position: 'top',
+              },
+              name: '내 점수',
+            },
+          ],
+        },
+      },
+    ],
+  };
 
-  myChart.setOption(option)
+  myChart.setOption(option);
 
-  // Ensure chart resizes when the window size changes
+  // 리사이즈 이벤트 추가
   window.addEventListener('resize', () => {
-    myChart.resize()
-  })
+    myChart.resize();
+  });
 }
