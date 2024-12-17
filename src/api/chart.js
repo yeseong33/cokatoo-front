@@ -1,58 +1,75 @@
 import * as echarts from 'echarts'
+import { LogAPI } from '.';
 
 
-// 정규분포 데이터를 생성하는 함수
-function generateRandomScores(mean, stdDev, count, range = [0, 100]) {
-  const [min, max] = range
-  const scores = []
 
-  for (let i = 0; i < count; i++) {
-    // Box-Muller 변환을 이용해 정규분포 데이터 생성
-    let u1 = Math.random()
-    let u2 = Math.random()
-    let z = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2) // 표준 정규분포 값
+async function getScores() {
+  const response = await LogAPI.scores();
 
-    // 생성된 값을 평균과 표준편차에 맞게 스케일링
-    let score = z * stdDev + mean
-
-    // 값이 범위를 벗어나지 않도록 조정
-    if (score < min) score = min
-    if (score > max) score = max
-
-    // 소수점 첫째 자리로 반올림
-    scores.push(Math.round(score * 10) / 10)
+  if (!response.data) {
+    throw new Error('Response data is not available');
   }
 
-  return scores
+  const decoder = new TextDecoder(); // UTF-8 디코더
+  const scores = [];
+
+  // 스트리밍 데이터 처리
+  for await (const chunk of response.data.split(/\r?\n/)) {
+    if (chunk.trim()) {
+      try {
+        const json = JSON.parse(chunk); // NDJSON 각 줄을 JSON으로 파싱
+        scores.push(json.score); // 점수 배열에 추가
+      } catch (err) {
+        console.error('JSON 파싱 에러:', err);
+      }
+    }
+  }
+
+  console.log('모든 점수 수신 완료:', scores);
+  return scores;
 }
 
-// 점수 데이터를 기반으로 분포 계산
+
 function calculateFineDistribution(scores, binSize) {
-  const maxScore = Math.max(...scores)
-  const bins = Array(Math.ceil(maxScore / binSize)).fill(0) // 0~최대 점수 범위로 나눈 빈
-  scores.forEach(score => {
-    const binIndex = Math.min(Math.floor(score / binSize), bins.length - 1)
-    bins[binIndex]++
-  })
-  return bins.map((count, index) => [index * binSize, count]) // [구간 시작점, 빈도]
+  const maxScore = 100; // 최대 점수는 100
+  const bins = Array(Math.ceil(maxScore / binSize)).fill(0); // 구간 개수만큼 배열 초기화
+  
+  // 점수 스케일 조정 (0~1 -> 0~100)
+  const scaledScores = scores.map(score => score * 100);
+
+  // 각 점수를 적절한 구간에 배치
+  scaledScores.forEach(score => {
+    const binIndex = Math.min(Math.floor(score / binSize), bins.length - 1); // 구간 계산
+    bins[binIndex]++;
+  });
+
+  // [구간 시작점, 빈도] 형태로 반환
+  return bins.map((count, index) => [index * binSize, count]);
 }
 
-
-export function initChart(chartDom, scores) {
+export async function initChart(chartDom) {
   const binSize = 1; // 세밀한 구간 크기
+  const scores = await getScores();
   const distribution = calculateFineDistribution(scores, binSize); // 분포 데이터 계산
 
   const myChart = echarts.init(chartDom);
 
-  const targetScore = 70; // 강조하고 싶은 점수
+  const targetScore = 72.1; // 강조하고 싶은 점수
 
-  // 목표 점수까지 색칠된 구간 생성
-  const shadedData = distribution.filter(([x]) => x >= targetScore); // targetScore 이하만 추출
+  // 목표 점수에 해당하는 빈도 계산 (올림 처리)
+  const roundedTargetScore = Math.ceil(targetScore); // 점수 올림 처리
+    
+  // 상위 퍼센트 계산 수정
+  const totalScores = scores.length; // 전체 데이터 개수
+  const sortedScores = [...scores].sort((a, b) => b - a); // 내림차순으로 정렬
+  const targetIndex = sortedScores.findIndex((score) => score <= targetScore / 100); // 현재 점수보다 작은 점수의 인덱스 찾기
 
-  // 상위 퍼센트 계산
-  const sortedScores = [...scores].sort((a, b) => a - b); // 정렬
-  const targetIndex = sortedScores.findIndex((score) => score > targetScore);
-  const percentile = Math.round(100 - ((targetIndex / sortedScores.length) * 100).toFixed(2), 10); // 상위 퍼센트 계산
+  // 현재 점수보다 높은 점수들의 빈도수 계산
+  const higherScores = sortedScores.slice(0, targetIndex); // 현재 점수보다 높은 점수들만 포함
+  const percentile = Math.ceil((higherScores.length / totalScores) * 100); // 올림 처리하여 상위 퍼센트 계산
+
+  // targetFrequency 계산 (해당 점수의 빈도 계산)
+  const targetFrequency = distribution.find(([score]) => score >= targetScore)?.[1] || 0; // 내 점수의 빈도 찾기
 
   const option = {
     title: {
@@ -78,6 +95,7 @@ export function initChart(chartDom, scores) {
       boundaryGap: false,
       min: 0,
       max: 100,
+      interval: 10, // x축 간격을 10점 단위로 설정
     },
     yAxis: {
       type: 'value',
@@ -101,7 +119,7 @@ export function initChart(chartDom, scores) {
       {
         name: '강조된 구간',
         type: 'line',
-        data: shadedData,
+        data: distribution.filter(([x]) => x >= targetScore), // 강조 구간 데이터
         smooth: true,
         lineStyle: {
           color: '#DA0037',
@@ -117,7 +135,7 @@ export function initChart(chartDom, scores) {
         markPoint: {
           data: [
             {
-              coord: [targetScore, 1200], // x: 점수, y: 빈도
+              coord: [targetScore, targetFrequency], // 타겟 점수와 빈도 값
               symbol: 'circle',
               symbolSize: 10,
               itemStyle: {

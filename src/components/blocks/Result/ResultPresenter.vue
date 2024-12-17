@@ -6,6 +6,7 @@ import blackCockatoo from '@/assets/grade/블랙코카투.png'
 import brid from '@/assets/grade/금조류.png'
 import columbidae from '@/assets/grade/비둘기.png'
 import { useStore } from 'vuex'
+import { LogAPI } from '@/api'
 
 const store = useStore()
 
@@ -63,7 +64,6 @@ const getResult = async () => {
   result.value.value = similarityScore.toFixed(1) // ref로 감싼 value에 접근
 
   const grade = store.state.result.grade
-  console.log("grade : ", grade)
 
   // grade에 맞는 값으로 동적으로 설정
   const gradeInfo = gradeDetails[grade] || gradeDetails.A // 기본값은 'A'로 설정
@@ -73,58 +73,9 @@ const getResult = async () => {
   result.value.videoTilte = gradeInfo.videoTilte
 }
 
-
-// 점수 데이터를 기반으로 분포 계산
-
-
-function calculateFineDistribution(scores, binSize) {
-  const maxScore = Math.max(...scores)
-  const bins = Array(Math.ceil(maxScore / binSize)).fill(0) // 0~최대 점수 범위로 나눈 빈
-  scores.forEach(score => {
-    const binIndex = Math.min(Math.floor(score / binSize), bins.length - 1)
-    bins[binIndex]++
-  })
-  return bins.map((count, index) => [index * binSize, count]) // [구간 시작점, 빈도]
-}
-
-
-
-// 정규분포 데이터를 생성하는 함수
-function generateRandomScores(mean, stdDev, count, range = [0, 100]) {
-  const [min, max] = range
-  const scores = []
-
-  for (let i = 0; i < count; i++) {
-    // Box-Muller 변환을 이용해 정규분포 데이터 생성
-    let u1 = Math.random()
-    let u2 = Math.random()
-    let z = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2) // 표준 정규분포 값
-
-    // 생성된 값을 평균과 표준편차에 맞게 스케일링
-    let score = z * stdDev + mean
-
-    // 값이 범위를 벗어나지 않도록 조정
-    if (score < min) score = min
-    if (score > max) score = max
-
-    // 소수점 첫째 자리로 반올림
-    scores.push(Math.round(score * 10) / 10)
-  }
-
-  return scores
-}
-
-
 // onMounted 훅에서 초기화
 onMounted(() => {
-
-  const mean = 50; // 평균
-  const stdDev = 15; // 표준편차
-  const count = 100000; // 생성할 데이터 개수
-
-  const scores = generateRandomScores(mean, stdDev, count)
-
-  if (chartDom.value) initChart(chartDom.value, scores)
+  if (chartDom.value) initChart(chartDom.value)
   if (tableRef.value) initTable(tableRef.value)
   getResult()
 })
